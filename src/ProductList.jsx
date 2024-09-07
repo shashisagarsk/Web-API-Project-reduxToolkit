@@ -1,28 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchProducts } from './redux/productSlice';
+import { addToCart } from './redux/cartSlice';  // Import the addToCart action
 
 const ProductList = () => {
   const dispatch = useDispatch();
   const products = useSelector((state) => state.products.items);
   const productStatus = useSelector((state) => state.products.status);
   const error = useSelector((state) => state.products.error);
+  const cartItems = useSelector((state) => state.cart.items); // Access cart items
 
-  // State to keep track of selected category and price
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
 
-  // Fetch products when the component mounts
   useEffect(() => {
     if (productStatus === 'idle') {
       dispatch(fetchProducts());
     }
   }, [productStatus, dispatch]);
 
-  // Extract unique categories from products
   const categories = ['all', ...new Set(products.map((product) => product.category))];
 
-  // Price ranges (you can adjust these based on your needs)
   const priceRanges = [
     { label: 'All Prices', value: 'all' },
     { label: 'Under $50', value: 'under50' },
@@ -30,7 +28,6 @@ const ProductList = () => {
     { label: 'Above $100', value: 'above100' },
   ];
 
-  // Filter products based on selected category and price
   const filteredProducts = products
     .filter((product) => selectedCategory === 'all' || product.category === selectedCategory)
     .filter((product) => {
@@ -49,8 +46,23 @@ const ProductList = () => {
     return <div>Error: {error}</div>;
   }
 
+  const handleAddToCart = (product) => {
+    dispatch(addToCart(product)); // Dispatch addToCart action when clicking the button
+  };
+
+  // Calculate total items in the cart
+  const totalItemsInCart = cartItems.reduce((total, item) => total + item.quantity, 0);
+
   return (
     <div style={styles.container}>
+      {/* Cart Icon and Total Items */}
+      <div style={styles.cartIconContainer}>
+        <div style={styles.cartIcon}>
+          🛒 {/* Cart icon, you can replace it with an actual image or Font Awesome icon */}
+        </div>
+        <div style={styles.cartCount}>{totalItemsInCart}</div>
+      </div>
+
       <h1 style={styles.header}>Product List with Filters</h1>
 
       {/* Dropdown to select category */}
@@ -95,7 +107,9 @@ const ProductList = () => {
             <h2 style={styles.title}>{product.title}</h2>
             <p>{product.description.substring(0, 100)}...</p>
             <div style={styles.price}>${product.price}</div>
-            <button style={styles.button}>Add to Cart</button>
+            <button style={styles.button} onClick={() => handleAddToCart(product)}>
+              Add to Cart
+            </button>
           </div>
         ))}
       </div>
@@ -106,6 +120,7 @@ const ProductList = () => {
 const styles = {
   container: {
     padding: '60px',
+    position: 'relative',
   },
   header: {
     textAlign: 'center',
@@ -156,6 +171,30 @@ const styles = {
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
+  },
+  cartIconContainer: {
+    position: 'absolute',
+    top: '20px',
+    right: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: '10px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    border: '1px solid #ddd',
+  },
+  cartIcon: {
+    fontSize: '24px',
+    marginRight: '8px',
+  },
+  cartCount: {
+    fontSize: '16px',
+    fontWeight: 'bold',
+    backgroundColor: '#007bff',
+    color: '#fff',
+    borderRadius: '50%',
+    padding: '5px 10px',
   },
 };
 
