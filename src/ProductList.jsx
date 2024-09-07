@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchProducts } from './redux/productSlice';
-import { addToCart } from './redux/cartSlice';  // Import the addToCart action
+import { addToCart, removeFromCart } from './redux/cartSlice';  // Import the actions
 
 const ProductList = () => {
   const dispatch = useDispatch();
@@ -12,6 +12,14 @@ const ProductList = () => {
 
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
+  const [showCheckout, setShowCheckout] = useState(false); // To toggle the checkout view
+  const [showDeliveryForm, setShowDeliveryForm] = useState(false); // Toggle the delivery form view
+  const [userDetails, setUserDetails] = useState({
+    name: '',
+    address: '',
+    city: '',
+    postalCode: '',
+  });
 
   useEffect(() => {
     if (productStatus === 'idle') {
@@ -50,13 +58,37 @@ const ProductList = () => {
     dispatch(addToCart(product)); // Dispatch addToCart action when clicking the button
   };
 
-  // Calculate total items in the cart
+  const handleRemoveFromCart = (product) => {
+    dispatch(removeFromCart(product)); // Dispatch removeFromCart action when clicking the button
+  };
+
+  // Calculate total items and total price in the cart
   const totalItemsInCart = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const totalPriceInCart = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+
+  // Function to handle Buy Now click
+  const handleBuyNowClick = () => {
+    setShowDeliveryForm(true);
+  };
+
+  // Function to simulate checkout after delivery details are filled
+  const handleCheckout = (e) => {
+    e.preventDefault(); // Prevent form submission
+    alert(`Purchase successful! Total: $${totalPriceInCart.toFixed(2)}\nDelivery to: ${userDetails.name}, ${userDetails.address}, ${userDetails.city}, ${userDetails.postalCode}`);
+    // You can clear the cart or redirect the user here
+    setShowDeliveryForm(false);
+  };
+
+  // Function to handle form input change
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setUserDetails({ ...userDetails, [name]: value });
+  };
 
   return (
     <div style={styles.container}>
       {/* Cart Icon and Total Items */}
-      <div style={styles.cartIconContainer}>
+      <div style={styles.cartIconContainer} onClick={() => setShowCheckout(!showCheckout)}>
         <div style={styles.cartIcon}>
           🛒 {/* Cart icon, you can replace it with an actual image or Font Awesome icon */}
         </div>
@@ -110,9 +142,99 @@ const ProductList = () => {
             <button style={styles.button} onClick={() => handleAddToCart(product)}>
               Add to Cart
             </button>
+            <button style={styles.buyButton} onClick={handleBuyNowClick}>
+              Buy Now
+            </button>
           </div>
         ))}
       </div>
+
+      {/* Display Cart with Remove and Buy Now Functionality */}
+      {showCheckout && (
+        <div style={styles.cart}>
+          <h2>Your Cart</h2>
+          {cartItems.length === 0 ? (
+            <p>No items in the cart.</p>
+          ) : (
+            <>
+              <ul style={styles.cartList}>
+                {cartItems.map((item) => (
+                  <li key={item.id} style={styles.cartItem}>
+                    {item.title} - {item.quantity} x ${item.price}
+                    <button style={styles.removeButton} onClick={() => handleRemoveFromCart(item)}>
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <h3>Total: ${totalPriceInCart.toFixed(2)}</h3>
+              <button style={styles.checkoutButton} onClick={handleBuyNowClick}>
+                Buy Now
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Show delivery form */}
+      {showDeliveryForm && (
+        <div style={styles.deliveryForm}>
+          <h2>Enter Delivery Details</h2>
+          <form onSubmit={handleCheckout}>
+            <div style={styles.formGroup}>
+              <label htmlFor="name">Name:</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={userDetails.name}
+                onChange={handleInputChange}
+                required
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label htmlFor="address">Address:</label>
+              <input
+                type="text"
+                id="address"
+                name="address"
+                value={userDetails.address}
+                onChange={handleInputChange}
+                required
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label htmlFor="city">City:</label>
+              <input
+                type="text"
+                id="city"
+                name="city"
+                value={userDetails.city}
+                onChange={handleInputChange}
+                required
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label htmlFor="postalCode">Postal Code:</label>
+              <input
+                type="text"
+                id="postalCode"
+                name="postalCode"
+                value={userDetails.postalCode}
+                onChange={handleInputChange}
+                required
+                style={styles.input}
+              />
+            </div>
+            <button type="submit" style={styles.checkoutButton}>
+              Complete Purchase
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
@@ -171,6 +293,17 @@ const styles = {
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
+    marginTop: '10px',
+  },
+  buyButton: {
+    padding: '10px',
+    backgroundColor: '#28a745',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    marginTop: '10px',
+    marginLeft: '10px',
   },
   cartIconContainer: {
     position: 'absolute',
@@ -195,6 +328,49 @@ const styles = {
     color: '#fff',
     borderRadius: '50%',
     padding: '5px 10px',
+  },
+  cart: {
+    marginTop: '40px',
+  },
+  cartList: {
+    listStyleType: 'none',
+    padding: 0,
+  },
+  cartItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '10px',
+  },
+  removeButton: {
+    backgroundColor: '#ff4d4f',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '5px 10px',
+    cursor: 'pointer',
+  },
+  deliveryForm: {
+    marginTop: '40px',
+    backgroundColor: '#f9f9f9',
+    padding: '20px',
+    borderRadius: '8px',
+  },
+  formGroup: {
+    marginBottom: '10px',
+  },
+  input: {
+    padding: '10px',
+    fontSize: '16px',
+    width: '100%',
+  },
+  checkoutButton: {
+    padding: '10px',
+    backgroundColor: '#28a745',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    marginTop: '10px',
   },
 };
 
